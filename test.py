@@ -9,10 +9,12 @@ import seaborn as sns
 sns.set_color_codes("pastel")
 sns.set(style="darkgrid")
 
+def clear():
+	print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
 # #######################################################################
 # import Wireshark capture
-packets = rdpcap('dump.pcapng')
+packets = rdpcap('dump_uni.pcapng')
 
 
 # #######################################################################
@@ -20,14 +22,11 @@ packets = rdpcap('dump.pcapng')
 packetsV4 = []
 packetsV6 = []
 for p in packets:
-	if( p.type == 0x800):		# IPv4 packets
+	if( p.type == 0x800):		# IPv4 packets 2048
 		packetsV4.append(p)
 		
-	elif( p.type == 0x86dd):	# IPv6 packets
+	elif( p.type == 0x86dd):	# IPv6 packets 34525
 		packetsV6.append(p)
-
-print("2048: IPv4, 34525: IPv6")
-Counter([x.type for x in packets])
 
 
 k4 = []
@@ -104,3 +103,5 @@ sns.despine()
 plt.tight_layout()
 plt.show()
 
+# packets with DHCP
+dhcp = df4[ df4['L3']=='BOOTP']
