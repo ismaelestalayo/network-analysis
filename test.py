@@ -5,12 +5,22 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
+import requests
 import seaborn as sns
 sns.set_color_codes("pastel")
 sns.set(style="darkgrid")
+pd.set_option('display.max_columns', 20)
 
-def clear():
-	print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
+# #######################################################################
+# 
+key='44b937bf195d9e5f596f13cc494526b5da633316'
+def fingerbank_DHCP_fingerprint(fingerprint):
+	URL = 'https://api.fingerbank.org/api/v2/combinations/interrogate?dhcp_fingerprint='+fingerprint+'&key='+key
+	r = requests.get(url = URL) 
+	print("RESPONSE:", r.status_code)
+	if(r.status_code == 200):
+		print( r.json() )
 
 # #######################################################################
 # import Wireshark capture
@@ -67,15 +77,15 @@ df6 = pd.DataFrame(k6)
 
 # #######################################################################
 # undirected graph of connections
-gf=nx.Graph()
+# gf=nx.Graph()
 
-for index, d in df4.iterrows():
-	gf.add_edge( d['MAC_src'], d['MAC_dst'] )
+# for index, d in df4.iterrows():
+# 	gf.add_edge( d['MAC_src'], d['MAC_dst'] )
 
-nx.draw_networkx(gf)
-plt.tight_layout()
-plt.axis('off')
-plt.show()
+# nx.draw_networkx(gf)
+# plt.tight_layout()
+# plt.axis('off')
+# plt.show()
 
 # #######################################################################
 # histogram of source and destination ports
@@ -95,7 +105,7 @@ plt.show()
 plt.subplot(2, 1, 1)
 plt.title('IP_src')
 sns.barplot(x=list( Counter(df4['IP_src']).values() ), y=list( Counter(df4['IP_src']).keys() ) )
-sns.despine()
+sns.despine()()
 plt.subplot(2, 1, 2)
 plt.title('IP_dst')
 sns.barplot(x=list( Counter(df4['IP_dst']).values() ), y=list( Counter(df4['IP_dst']).keys() ) )
@@ -103,5 +113,15 @@ sns.despine()
 plt.tight_layout()
 plt.show()
 
+
 # packets with DHCP
 dhcp = df4[ df4['L3']=='BOOTP']
+dhcp = [i for i, d in dhcp.iterrows()]
+
+info = []
+for d in dhcp:
+	p = packetsV4[ d ][4].options	# 4th layer, DHCP, has an 'options' field
+	info.append( dict(p[:-1]) )
+
+kk = pd.DataFrame( info )
+fingerprint = str(", ").join(str(x) for x in kk.iloc[0]['param_req_list'] ).replace(" ", "")
