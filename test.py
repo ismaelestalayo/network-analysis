@@ -13,14 +13,17 @@ pd.set_option('display.max_columns', 20)
 
 
 # #######################################################################
-# 
+# FingerBank (DHCP fingerprint)     https://api.fingerbank.org/api/v2/combinations/interrogate?dhcp_fingerprint=1,3,6,15,26,28,51,58,59,43&key=44b937bf195d9e5f596f13cc494526b5da633316
 key='44b937bf195d9e5f596f13cc494526b5da633316'
 def fingerbank_DHCP_fingerprint(fingerprint):
 	URL = 'https://api.fingerbank.org/api/v2/combinations/interrogate?dhcp_fingerprint='+fingerprint+'&key='+key
 	r = requests.get(url = URL) 
-	print("RESPONSE:", r.status_code)
+	print("RESPONSE:", r.status_code, '\n')
 	if(r.status_code == 200):
-		print( r.json() )
+		print( r.json(), '\n')
+		print( r.json()['device']['name'] )
+	
+	return r
 
 # #######################################################################
 # import Wireshark capture
@@ -105,7 +108,7 @@ plt.show()
 plt.subplot(2, 1, 1)
 plt.title('IP_src')
 sns.barplot(x=list( Counter(df4['IP_src']).values() ), y=list( Counter(df4['IP_src']).keys() ) )
-sns.despine()()
+sns.despine()
 plt.subplot(2, 1, 2)
 plt.title('IP_dst')
 sns.barplot(x=list( Counter(df4['IP_dst']).values() ), y=list( Counter(df4['IP_dst']).keys() ) )
@@ -114,7 +117,7 @@ plt.tight_layout()
 plt.show()
 
 
-# packets with DHCP
+# list of packet numbers with DHCP
 dhcp = df4[ df4['L3']=='BOOTP']
 dhcp = [i for i, d in dhcp.iterrows()]
 
@@ -125,3 +128,4 @@ for d in dhcp:
 
 kk = pd.DataFrame( info )
 fingerprint = str(", ").join(str(x) for x in kk.iloc[0]['param_req_list'] ).replace(" ", "")
+r = fingerbank_DHCP_fingerprint(fingerprint)
