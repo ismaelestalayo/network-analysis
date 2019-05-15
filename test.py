@@ -1,5 +1,6 @@
 from scapy.all import *
 from collections import Counter
+from bs4 import BeautifulSoup
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -12,10 +13,11 @@ sns.set(style="darkgrid")
 pd.set_option('display.max_columns', 20)
 
 
-# #######################################################################
+# ##################################################################################
 # FingerBank (DHCP fingerprint)     https://api.fingerbank.org/api/v2/combinations/interrogate?dhcp_fingerprint=1,3,6,15,26,28,51,58,59,43&key=44b937bf195d9e5f596f13cc494526b5da633316
 key='44b937bf195d9e5f596f13cc494526b5da633316'
 def fingerbank_DHCP_fingerprint(fingerprint):
+	""" Makes a request to FingerBank API """
 	URL = 'https://api.fingerbank.org/api/v2/combinations/interrogate?dhcp_fingerprint='+fingerprint+'&key='+key
 	r = requests.get(url = URL) 
 	print("RESPONSE:", r.status_code, '\n')
@@ -25,12 +27,12 @@ def fingerbank_DHCP_fingerprint(fingerprint):
 	
 	return r
 
-# #######################################################################
+# ##################################################################################
 # import Wireshark capture
-packets = rdpcap('dump_uni.pcapng')
+packets = rdpcap('dump_uni2.pcapng')
 
 
-# #######################################################################
+# ##################################################################################
 # make list for IPv4 and IPv6 packets
 packetsV4 = []
 packetsV6 = []
@@ -78,7 +80,7 @@ k6 = [{	'MAC_src': 	p.src,
 df4 = pd.DataFrame(k4)
 df6 = pd.DataFrame(k6)
 
-# #######################################################################
+# ##################################################################################
 # undirected graph of connections
 # gf=nx.Graph()
 
@@ -90,7 +92,7 @@ df6 = pd.DataFrame(k6)
 # plt.axis('off')
 # plt.show()
 
-# #######################################################################
+# ##################################################################################
 # histogram of source and destination ports
 plt.subplot(2, 1, 1)
 plt.title('port_src')
@@ -117,15 +119,33 @@ plt.tight_layout()
 plt.show()
 
 
-# list of packet numbers with DHCP
-dhcp = df4[ df4['L3']=='BOOTP']
-dhcp = [i for i, d in dhcp.iterrows()]
+# ##################################################################################
+# list of packet numbers with X protocol
+dhcp 	= [index for index, data in df4[ df4['L3']=='BOOTP'	].iterrows()] 	# DHCP
+dns  	= [index for index, data in df4[ df4['L3']=='DNS'	].iterrows()]	# DNS
 
-info = []
-for d in dhcp:
-	p = packetsV4[ d ][4].options	# 4th layer, DHCP, has an 'options' field
-	info.append( dict(p[:-1]) )
+array = []
+for i in dhcp:
+	p = packetsV4[i][4].options		# 4th layer, DHCP, has an 'options' field
+	i = p.index('end')				# find where it ends (cuz it may have 'pad' elements)
+	array.append( dict(p[:i]) )
 
-kk = pd.DataFrame( info )
-fingerprint = str(", ").join(str(x) for x in kk.iloc[0]['param_req_list'] ).replace(" ", "")
+kk = pd.DataFrame( array )
+
+		
+for i in dns:
+	if  ( packetsV4[i][4].name == 'DNS Resource Record'):
+		print("\n> DNS response (packet %d) " % i)
+		print('   ', packetsV4[i][4].rdata )
+		print('   ', packetsV4[i][4].rrname )
+	
+	elif( packetsV4[i][4].name == 'DNS Question Record'):
+		# print("> DNS query (packet %d) " % i)
+		pass
+
+
+kk = pd.DataFrame( array )
+
+fingerprint = str(", ").join(str(x) for x in kk.iloc[1]['param_req_list'] ).replace(" ", "")
 r = fingerbank_DHCP_fingerprint(fingerprint)
+
